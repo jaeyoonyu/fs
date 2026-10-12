@@ -65,6 +65,25 @@ TAGGED = [
              "IncomeLossFromContinuingOperationsBeforeIncomeTaxesMinorityInterestAndIncomeLossFromEquityMethodInvestments"], "is"),
     ("tax", ["IncomeTaxExpenseBenefit"], "is"),
     ("ni", RATIO_TAGS["ni"], "is"),
+    # Cash flow statement (quarterly by differencing the year-to-date amounts).
+    ("ni_c", ["ProfitLoss", "NetIncomeLoss"], "is"),  # consolidated: what the cash flow statement starts from
+    ("da", ["DepreciationDepletionAndAmortization", "DepreciationAndAmortization",
+            "DepreciationAmortizationAndAccretionNet", "Depreciation"], "is"),
+    ("sbc", ["ShareBasedCompensation", "AllocatedShareBasedCompensationExpense"], "is"),
+    ("ocf", RATIO_TAGS["ocf"], "is"),
+    ("capex_pos", RATIO_TAGS["capex"], "is"),
+    # Delta files capex only in two parts since 2026 (as on the Ratios page).
+    ("flight_pos", ["PaymentsForFlightEquipment"], "is"),
+    ("opp_pos", ["PaymentsToAcquireOtherProductiveAssets"], "is"),
+    ("cfi", ["NetCashProvidedByUsedInInvestingActivities",
+             "NetCashProvidedByUsedInInvestingActivitiesContinuingOperations"], "is"),
+    ("div_pos", ["PaymentsOfDividends", "PaymentsOfDividendsCommonStock"], "is"),
+    ("buyb_pos", ["PaymentsForRepurchaseOfCommonStock"], "is"),
+    ("cff", ["NetCashProvidedByUsedInFinancingActivities",
+             "NetCashProvidedByUsedInFinancingActivitiesContinuingOperations"], "is"),
+    ("chg", ["CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalentsPeriodIncreaseDecreaseIncludingExchangeRateEffect",
+             "CashAndCashEquivalentsPeriodIncreaseDecrease",
+             "CashCashEquivalentsRestrictedCashAndRestrictedCashEquivalentsPeriodIncreaseDecreaseExcludingExchangeRateEffect"], "is"),
 ]
 
 # What the page shows, in order: (key, label, style). style: "#" section heading,
@@ -100,7 +119,20 @@ IS_LAYOUT = [
     ("oni", "Others", "oth"),
     ("ni", "Net income", "tot"), ("eps", "EPS (diluted)", ""),
 ]
-LAYOUT_KEYS = [k for k, _, s in BS_LAYOUT + IS_LAYOUT if s != "#"]
+CF_LAYOUT = [
+    ("#", "Operating activities", "#"),
+    ("ni_c", "Net income", "sub"), ("da", "Depreciation & amortization", "sub"),
+    ("sbc", "Stock-based compensation", "sub"), ("oop", "Others", "oth"),
+    ("ocf", "Cash from operations", "tot"),
+    ("#", "Investing activities", "#"),
+    ("capex", "Capital expenditures", "sub"), ("oinv", "Others", "oth"),
+    ("cfi", "Cash from investing", "tot"),
+    ("#", "Financing activities", "#"),
+    ("div", "Dividends paid", "sub"), ("buyb", "Share repurchases", "sub"), ("ofin", "Others", "oth"),
+    ("cff", "Cash from financing", "tot"),
+    ("ofx", "Exchange rates & other", "oth"), ("chg", "Net change in cash", "tot"),
+]
+LAYOUT_KEYS = [k for k, _, s in BS_LAYOUT + IS_LAYOUT + CF_LAYOUT if s != "#"]
 
 
 def merged(gaap, tags, conv):
@@ -161,6 +193,15 @@ def fill(v):
     v["oopex"] = None if v["oi"] is None or base is None else rest(base - v["oi"], v["rd"], v["sga"])
     v["onon"] = None if v["pti"] is None or v["oi"] is None else rest(v["pti"] - v["oi"] + (v["int"] or 0))
     v["oni"] = None if v["pti"] is None or v["tax"] is None or v["ni"] is None else rest(v["ni"] - v["pti"] + v["tax"])
+    # Cash flows: payments are tagged as positive amounts; the statement shows them as outflows.
+    if v["capex_pos"] is None and v["flight_pos"] is not None and v["opp_pos"] is not None:
+        v["capex_pos"] = v["flight_pos"] + v["opp_pos"]
+    for k in ("capex", "div", "buyb"):
+        v[k] = -v[k + "_pos"] if v[k + "_pos"] else None
+    v["oop"] = None if v["ocf"] is None else rest(v["ocf"], v["ni_c"], v["da"], v["sbc"])
+    v["oinv"] = None if v["cfi"] is None else rest(v["cfi"], v["capex"])
+    v["ofin"] = None if v["cff"] is None else rest(v["cff"], v["div"], v["buyb"])
+    v["ofx"] = None if v["chg"] is None or None in (v["ocf"], v["cfi"], v["cff"]) else rest(v["chg"], v["ocf"], v["cfi"], v["cff"])
     return v
 
 
@@ -177,7 +218,9 @@ def company(cik, sub):
         v = {k: (m[k][e][0] if e in m[k] else None) for k, *_ in TAGGED}
         if v["ta"] is None and v["rev"] is None:
             continue
-        derived = any(m[k][e][1] for k, _, kind in TAGGED if kind == "is" and e in m[k])
+        # "*" = income statement derived as annual minus nine months; cash flows are always
+        # differenced from year-to-date totals, so they do not set it.
+        derived = any(m[k][e][1] for k in ("rev", "ni") if e in m[k])
         v = fill(v)
         v["eps"] = None if derived else eps.get(e)
         me = month_end(datetime.strptime(e, "%Y-%m-%d").date())
@@ -218,13 +261,15 @@ def main():
     # Compact rows: the amounts become one list in LAYOUT_KEYS order (about half the size),
     # and filing URLs drop their common prefix, which the page adds back.
     base = "https://www.sec.gov/Archives/edgar/data/"
+    ix = "https://www.sec.gov/ix?doc=/Archives/edgar/data/"
     for c in data:
         c["quarters"] = [dict(q=r["q"], end=r["end"], form=r["form"], derived=r["derived"],
-                              tl_derived=r["tl_derived"], u=(r["url"] or "").replace(base, ""),
+                              tl_derived=r["tl_derived"], u=(r["url"] or "").replace(ix, "").replace(base, ""), ix=(r["url"] or "").startswith(ix),
                               v=[r[k] for k in LAYOUT_KEYS]) for r in c["quarters"]]
     layout = dict(keys=LAYOUT_KEYS,
                   bs=[dict(key=k, label=lab, style=s) for k, lab, s in BS_LAYOUT],
-                  is_=[dict(key=k, label=lab, style=s) for k, lab, s in IS_LAYOUT])
+                  is_=[dict(key=k, label=lab, style=s) for k, lab, s in IS_LAYOUT],
+                  cf=[dict(key=k, label=lab, style=s) for k, lab, s in CF_LAYOUT])
 
     stamp = datetime.now().strftime("%Y-%m-%d %H:%M")
     page = (Path(__file__).with_name("statements_template.html").read_text(encoding="utf-8")

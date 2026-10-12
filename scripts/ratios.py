@@ -16,7 +16,7 @@ import urllib.request
 from datetime import datetime
 from pathlib import Path
 
-from fundamentals import GROUPS, UA, fye_mmdd, get_json, month_end
+from fundamentals import GROUPS, UA, doc_url, fye_mmdd, get_json, month_end
 from shell import write_page
 
 FIRST_COL, LAST_COL = (2019, 1), (2026, 2)  # calendar quarters shown, (year, q)
@@ -137,9 +137,9 @@ def filing_index(sub):
 
 
 def filing_urls(cik, filings):
-    """period end -> URL of the filing's main document (the original if amended)."""
-    return {f["reportDate"]: f"https://www.sec.gov/Archives/edgar/data/{cik}/"
-                             f"{acc.replace('-', '')}/{f['primaryDocument']}"
+    """period end -> URL of the filing's main document (the original if amended),
+    opened in SEC's inline XBRL viewer when the filing supports it."""
+    return {f["reportDate"]: doc_url(cik, acc, f["primaryDocument"], f.get("isInlineXBRL"))
             for acc, f in sorted(filings.items(), key=lambda kv: kv[1]["filingDate"], reverse=True)}
 
 

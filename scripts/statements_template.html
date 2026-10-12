@@ -22,7 +22,7 @@ table.st-f th, table.st-f td { padding: 1px 8px; border-bottom: 1px solid var(--
 table.st-f th { text-align: right; font-weight: 600; vertical-align: bottom; font-size: 12px; }
 table.st-f th small { display: block; font-weight: 400; color: var(--muted); }
 table.st-f td { text-align: right; }
-table.st-f td:first-child { text-align: left; white-space: normal; min-width: 260px; max-width: 420px; }
+table.st-f td:first-child { text-align: left; white-space: normal; min-width: 170px; max-width: 320px; }
 table.st-f tr.h td:first-child { font-weight: 700; padding-top: 6px; }
 table.st-f tr.t td { font-weight: 700; border-top: 1.5px solid currentColor; }
 table.st-f tr:hover td, table.st-f tr:nth-child(odd) td { background: none; }
@@ -33,7 +33,7 @@ table.st-f tr:hover td, table.st-f tr:nth-child(odd) td { background: none; }
 .st-links a:hover { background: rgba(128,128,128,.12); text-decoration: none; }
 table.st-t th, table.st-t td { padding: 1px 6px; border-bottom: 1px solid var(--grid); font-variant-numeric: tabular-nums; white-space: nowrap; }
 table.st-t th { text-align: right; font-weight: 600; vertical-align: bottom; }
-table.st-t th:first-child, table.st-t td:first-child { text-align: left; white-space: normal; }
+table.st-t th:first-child, table.st-t td:first-child { text-align: left; white-space: nowrap; }
 table.st-t td { text-align: right; }
 table.st-t th small { display: block; font-weight: 400; color: var(--muted); }
 table.st-t td:first-child span[title] { border-bottom: 1px dotted var(--muted); cursor: help; }
@@ -42,8 +42,8 @@ table.st-t tr.oth td { font-style: italic; color: var(--muted); }
 table.st-t tr.tot td { font-weight: 700; border-top: 1.5px solid currentColor; }
 table.st-t tr.sec td { font-weight: 700; color: var(--muted); font-size: 10.5px; text-transform: uppercase; letter-spacing: .05em; padding-top: 6px; }
 table.st-t tr:hover td, table.st-t tr:nth-child(odd) td { background: none; }
-.st-cols { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 28px; }
-@media (min-width: 1100px) { .st-cols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.st-cols { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0 22px; align-items: start; }
+@media (min-width: 1300px) { .st-cols { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 table.st-t td.pct, table.st-t td.chg { color: var(--muted); font-size: 12px; }
 .st-check { font-size: 13px; margin-top: 6px; line-height: 1.6; }
 .st-check .ok { color: #0ca30c; font-weight: 700; }
@@ -102,15 +102,20 @@ table.st-t td.pct, table.st-t td.chg { color: var(--muted); font-size: 12px; }
 <h3>Income statement</h3>
 <div class="st-unit" id="st-is-unit"></div>
 <div class="st-wrap"><table class="st-t" id="st-is"></table></div>
+</div><div>
+<h3>Cash flow statement</h3>
+<div class="st-unit" id="st-cf-unit"></div>
+<div class="st-wrap"><table class="st-t" id="st-cf"></table></div>
 </div></div>
 
 <ul class="st-notes">
 <li><b>Standardized</b>: each company's XBRL tags are mapped onto one template, so the lines are not the company's own presentation</li>
-<li><b>As filed (SEC)</b>, the default: the complete balance sheet and income statement exactly as the company filed them in that 10-Q/10-K (its own lines, labels, and comparison columns), from the SEC's rendering of the filing</li>
+<li><b>As filed (SEC)</b>, the default: the complete balance sheet, income statement, and cash flow statement exactly as the company filed them in that 10-Q/10-K (its own lines, labels, and comparison columns), from the SEC's rendering of the filing</li>
 <li><i>Others</i> (in italics) = the section's subtotal minus the lines shown, so every section adds up and assets = liabilities + equity</li>
-<li>% = share of total assets (balance sheet) or of revenue (income statement), for the selected quarter</li>
+<li>% = share of total assets (balance sheet) or of revenue (income and cash flow statements), for the selected quarter</li>
+<li>Cash flows are filed year-to-date, so each quarter = year-to-date minus the prior year-to-date; payments (capex, dividends, buybacks) show as negatives</li>
 <li>Amounts in $ millions, except EPS; negative amounts in parentheses</li>
-<li>Balance sheet = at the end of the quarter; income statement = for the three months of the quarter</li>
+<li>Balance sheet = at the end of the quarter; income and cash flow statements = for the three months of the quarter</li>
 <li>Quarters = calendar quarters; the column header shows the exact period end</li>
 <li><b>*</b> = Q4 derived as annual (10-K) minus nine-month year-to-date; EPS is not derived this way, so it shows — for Q4</li>
 <li><b>†</b> = no total-liabilities line in the filing; shown as total liabilities and equity minus total equity</li>
@@ -128,7 +133,7 @@ table.st-t td.pct, table.st-t td.chg { color: var(--muted); font-size: 12px; }
   // Unpack the compact rows: v holds the amounts in LAYOUT.keys order.
   DATA.forEach(c => c.quarters.forEach(q => {
     LAYOUT.keys.forEach((k, i) => { q[k] = q.v[i]; }); delete q.v;
-    q.url = q.u ? "https://www.sec.gov/Archives/edgar/data/" + q.u : null; }));
+    q.url = q.u ? (q.ix ? "https://www.sec.gov/ix?doc=/Archives/edgar/data/" : "https://www.sec.gov/Archives/edgar/data/") + q.u : null; }));
   const $ = id => document.getElementById(id);
   // "Others" lines: what they typically hold; all are the subtotal minus the lines shown.
   const OTHERS = {
@@ -140,6 +145,10 @@ table.st-t td.pct, table.st-t td.chg { color: var(--muted); font-size: 12px; }
     oopex: "Operating expenses not listed above, e.g., depreciation, impairments, and restructuring",
     onon: "Nonoperating items, e.g., interest income and gains or losses on investments",
     oni: "Items below income tax, e.g., noncontrolling interests, discontinued operations, and equity-method income",
+    oop: "Other operating adjustments, mostly changes in working capital (receivables, inventory, payables)",
+    oinv: "Other investing flows, e.g., buying and selling investments and acquisitions",
+    ofin: "Other financing flows, e.g., borrowing and repaying debt and issuing shares",
+    ofx: "Effect of exchange-rate changes on cash, and any rounding",
   };
   const otherDef = k => (OTHERS[k] || "Items not listed above") + " (computed: the subtotal minus the lines shown)";
   const DEF = {
@@ -180,6 +189,16 @@ table.st-t td.pct, table.st-t td.chg { color: var(--muted); font-size: 12px; }
     tax: "Income tax for the period's profit",
     ni: "The bottom line: all revenues and gains minus all expenses and losses, for the company's shareholders",
     eps: "Net income per share, counting shares that options and convertible securities could add",
+    ni_c: "Net income including noncontrolling interests: the starting point of the cash flow statement",
+    da: "Non-cash expense added back: the period's depreciation and amortization",
+    sbc: "Non-cash expense added back: employee pay in shares and options",
+    ocf: "Cash generated by the business: net income adjusted for non-cash items and working capital",
+    capex: "Cash spent on property, plant, and equipment",
+    cfi: "Net cash from buying and selling long-term assets and investments",
+    div: "Cash paid to shareholders as dividends",
+    buyb: "Cash spent buying back the company's own shares",
+    cff: "Net cash from borrowing, repaying debt, issuing or buying back shares, and dividends",
+    chg: "Cash from operations + investing + financing (+ exchange-rate effects)",
   };
   const sel = $("st-sel"), qsel = $("st-q");
   let ci = 0, qi = -1, defs = false, full = true;  // as filed is the default
@@ -207,8 +226,9 @@ table.st-t td.pct, table.st-t td.chg { color: var(--muted); font-size: 12px; }
     const d = await loadFull(c.ticker);
     if (DATA[ci] !== c || c.quarters[qi] !== cur) return;  // the selection changed while loading
     const f = d && d[cur.q];
+    box.className = "st-full" + (f ? " st-cols" : "");
     box.innerHTML = !f ? '<div class="st-empty">The full statements are not available for this filing.</div>' :
-      ["is", "bs"].map(k => f[k] ? fullTable(f[k]) : "").join("");
+      ["bs", "is", "cf"].map(k => `<div>${f[k] ? fullTable(f[k]) : ""}</div>`).join("");
   }
 
 
@@ -250,7 +270,7 @@ table.st-t td.pct, table.st-t td.chg { color: var(--muted); font-size: 12px; }
         if (style === "#") return `<tr class="sec"><td colspan="${defs ? 6 : 5}">${label}</td></tr>`;
         const a = cur && cur[key], b = pri && pri[key];
         // Hide optional lines that are empty in both quarters (e.g., no mezzanine equity).
-        if (a == null && b == null && ["mezz", "nci", "treas", "rou", "intang", "oni"].includes(key)) return "";
+        if (a == null && b == null && ["mezz", "nci", "treas", "rou", "intang", "oni", "sbc", "div", "buyb", "ofx"].includes(key)) return "";
         const f = key === "eps" ? eps : money;
         const lab = label + (key === "tl" && cur && cur.tl_derived ? " †" : "");
         return `<tr class="${style}"><td><span title="${style === "oth" && !DEF[key] ? otherDef(key) : DEF[key] || ""}">${lab}</span></td>` +
@@ -301,11 +321,13 @@ table.st-t td.pct, table.st-t td.chg { color: var(--muted); font-size: 12px; }
     $("st-sub").textContent = c.group + " · FYE " + c.fye;
     $("st-bs-unit").textContent = `As of quarter end · $ millions`;
     $("st-is-unit").textContent = `Three months · $ millions, except EPS`;
+    $("st-cf-unit").textContent = `Three months · $ millions`;
     links(cur);
     document.querySelector(".st").classList.toggle("full", full);
     $("st-simple").classList.toggle("on", !full); $("st-fullbtn").classList.toggle("on", full);
     if (full) renderFull(c, cur);
-    table("st-bs", LAYOUT.bs, cur, pri, cur.ta); table("st-is", LAYOUT.is_, cur, pri, cur.rev); check(cur);
+    table("st-bs", LAYOUT.bs, cur, pri, cur.ta); table("st-is", LAYOUT.is_, cur, pri, cur.rev);
+    table("st-cf", LAYOUT.cf, cur, pri, cur.rev); check(cur);
     try { history.replaceState(null, "", "#" + c.ticker + "/" + cur.q + (full ? "" : "/std")); } catch (e) {}
   }
 

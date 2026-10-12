@@ -32,6 +32,13 @@ GROUPS = [
 ]
 
 
+def doc_url(cik, acc, doc, inline):
+    """Link to a filing's main document: SEC's inline XBRL viewer when the filing
+    supports it (mid-2019 on), else the plain document."""
+    path = f"/Archives/edgar/data/{cik}/{acc.replace('-', '')}/{doc}"
+    return f"https://www.sec.gov/ix?doc={path}" if inline else f"https://www.sec.gov{path}"
+
+
 def get_json(url):
     for attempt in range(3):
         try:
@@ -91,8 +98,7 @@ def company(ticker, cik):
         fy = end.year + offset
         if r["form"] == "10-K":
             q = 4
-        url = (f"https://www.sec.gov/Archives/edgar/data/{cik}/"
-               f"{r['accessionNumber'].replace('-', '')}/{r['primaryDocument']}")
+        url = doc_url(cik, r["accessionNumber"], r["primaryDocument"], r.get("isInlineXBRL"))
         e = r["end"]
         filings.append(dict(form=r["form"], period=r["reportDate"], filed=r["filingDate"],
                             label=f"{fy % 100:02d}Q{q}", url=url,
@@ -127,7 +133,7 @@ def main():
             print(t, c["fye"], [f["label"] for f in c["filings"]])
             time.sleep(0.25)
 
-    # Columns are calendar quarters, oldest first; a filing sits in the quarter
+    # Columns are calendar quarters, newest first; a filing sits in the quarter
     # its period end (snapped to month end) falls in.
     # A long first quarter (CAVA's 16 weeks to late April) can land in the same
     # quarter as the next filing; then the earlier one moves back a column.
@@ -138,7 +144,7 @@ def main():
                 print(f"  shift {c['ticker']} {f['period']} back one quarter")
                 f["col"] = newer["col"] - 1
     lo, hi = (FIRST_COL[0] * 4 + FIRST_COL[1] - 1, LAST_COL[0] * 4 + LAST_COL[1] - 1)
-    cols = list(range(lo, hi + 1))
+    cols = list(range(hi, lo - 1, -1))
     # Within a sector, order by fiscal year end, then ticker.
     data.sort(key=lambda c: ([g for g, _ in GROUPS].index(c["group"]), fye_mmdd(c["fye"]), c["ticker"]))
 
@@ -204,9 +210,9 @@ table.fund th:nth-child(3), table.fund td:nth-child(3) {{ border-right: 1px soli
 <li><b>FYE</b> = fiscal year end (MMDD)</li>
 <li><b>Q0731</b> = 10-Q, quarter ending July 31</li>
 <li><span class="k">A0131</span> = 10-K (annual report), year ending January 31</li>
-<li>Columns = calendar quarters, oldest → newest</li>
+<li>Columns = calendar quarters, newest → oldest</li>
 <li>Dates are rounded to the nearest month end</li>
-<li>Click a cell to open the filing; hover for the exact date and the company's own fiscal quarter</li>
+<li>Click a cell to open the filing in SEC's inline XBRL viewer; hover for the exact date and the company's own fiscal quarter</li>
 <li>Updated {stamp} from SEC EDGAR</li>
 </ul>
 """

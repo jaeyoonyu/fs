@@ -1,4 +1,4 @@
-"""Collect the full, as-filed balance sheet and income statement of every 10-Q/10-K
+"""Collect the full, as-filed balance sheet, income statement, and cash flow statement of every 10-Q/10-K
 for the Statements page's "Full version": assets/statements/<TICKER>.json.
 
 Run from the repo root:  python scripts/statements_full.py
@@ -28,6 +28,7 @@ FIND = {
     "is": re.compile(r"(statements?|statement) of (consolidated )?(income|operations|earnings)|income statements?"
                      r"|statements? of (comprehensive )?\(?(income|loss)|operations", re.I),  # "(Loss) Income" too
     "bs": re.compile(r"balance sheets?|financial (condition|position)", re.I),
+    "cf": re.compile(r"cash flows?", re.I),
 }
 SKIP = re.compile(r"parenthetical|details|policies|tables|narrative", re.I)
 
@@ -151,8 +152,8 @@ def main():
                 st = filing_statements(cik, acc)
                 if st:
                     data[q] = dict(form=f["form"], **st)
-                if "is" not in st or "bs" not in st:
-                    missing.append(f"{q}:{''.join(k for k in ('is', 'bs') if k not in st)}")
+                if any(k not in st for k in ("bs", "is", "cf")):
+                    missing.append(f"{q}:{','.join(k for k in ('bs', 'is', 'cf') if k not in st)}")
             (OUT / f"{t}.json").write_text(json.dumps(data, separators=(",", ":")), encoding="utf-8")
             print(f"{t:6} {len(data)} quarters  missing: {missing or '-'}", flush=True)
 
