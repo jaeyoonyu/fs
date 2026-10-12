@@ -79,6 +79,8 @@ table.rt-t tr.pick:hover td { background: rgba(128,128,128,.10); }
 <li>In the sector chart, margins beyond ±100% are drawn at the edge; the table and tooltip show the actual values</li>
 <li><b>Current ratio</b> = current assets ÷ current liabilities, at quarter end</li>
 <li><b>OCF</b> = net cash from operating activities</li>
+<li><b>Cash flows</b>: cash from operating, investing, and financing activities; OCF and FCF margins = ÷ revenue</li>
+<li><b>Cash conversion</b> = OCF ÷ net income; n/m when net income is zero or negative (or the multiple tops 20×)</li>
 <li><b>Free cash flow (FCF)</b> = OCF − capital expenditures; top panel: OCF and capex bars, bottom panel: FCF line, same quarters</li>
 <li><b>Shares outstanding</b> = all share classes on the 10-Q/10-K cover page, as of a date shortly after quarter end</li>
 <li>Share counts before a stock split are restated to the post-split basis (e.g., NVDA 10-for-1, first seen in 24Q3); untick "Adjust for stock splits" to see them as filed</li>
@@ -108,6 +110,8 @@ table.rt-t tr.pick:hover td { background: rgba(128,128,128,.10); }
   const sel = $("rt-sel"), box = $("rt-chart"), tip = $("rt-tip");
   const ratio = (a, b) => (a == null || b == null || b === 0) ? null : a / b;
   const fcf = q => (q.ocf == null || q.capex == null) ? null : q.ocf - q.capex;
+  // OCF ÷ net income; not meaningful when net income is zero or negative, or the multiple is extreme.
+  const conv = q => (q.ocf == null || !q.ni || q.ni <= 0 || Math.abs(q.ocf / q.ni) > 20) ? null : q.ocf / q.ni;
   const pct = v => v == null ? "—" : (v * 100).toFixed(1) + "%";
   const x2 = v => v == null ? "—" : v.toFixed(2);
   const usd = v => v == null ? "—" : (v < 0 ? "−$" : "$") + Math.abs(v / 1e6).toLocaleString(undefined, { maximumFractionDigits: 0 }) + "M";
@@ -130,6 +134,17 @@ table.rt-t tr.pick:hover td { background: rgba(128,128,128,.10); }
         { name: "Capex", color: "var(--s2)", f: q => q.capex }] },
       { title: "Free cash flow = OCF − capex", kind: "line", h: 200, series: [
         { name: "Free cash flow", color: "var(--s3)", f: fcf }] }] },
+    { id: "cf", label: "Cash flows", fmt: usd, panels: [
+      { title: "Cash from operating, investing, and financing activities", kind: "bar", h: 230, series: [
+        { name: "Operating", color: "var(--s1)", f: q => q.ocf },
+        { name: "Investing", color: "var(--s2)", f: q => q.cfi },
+        { name: "Financing", color: "var(--s3)", f: q => q.cff }] },
+      { title: "Cash flow margins (÷ revenue)", kind: "line", h: 190, fmt: pct, series: [
+        { name: "OCF margin", color: "var(--s1)", f: q => ratio(q.ocf, q.rev) },
+        { name: "FCF margin", color: "var(--s3)", f: q => ratio(fcf(q), q.rev) }] },
+      { title: "Cash conversion = OCF ÷ net income (above 1× means earnings are backed by cash)", kind: "line", h: 170,
+        fmt: mult, ref: 1, series: [
+        { name: "Cash conversion", color: "var(--c7)", f: q => conv(q) }] }] },
     { id: "sh", label: "Shares outstanding", kind: "line", fmt: shr, series: [
       { name: "Shares outstanding", color: "var(--s1)", f: q => splitAdj ? q.shares : q.shares_raw }] },
     { id: "pf", label: "Public float", kind: "bar", fmt: usd, series: [
@@ -147,6 +162,9 @@ table.rt-t tr.pick:hover td { background: rgba(128,128,128,.10); }
     ["OPM", q => pct(ratio(q.oi, q.rev)), "margin"], ["Net income", q => usd(q.ni), "ocf"],
     ["NPM", q => pct(ratio(q.ni, q.rev)), "margin"], ["OCF", q => usd(q.ocf), "ocf fcf"],
     ["Capex", q => usd(q.capex), "fcf"], ["FCF", q => usd(fcf(q)), "fcf"],
+    ["Cash from investing", q => usd(q.cfi), "cf"], ["Cash from financing", q => usd(q.cff), "cf"],
+    ["Dividends", q => usd(q.div), "cf"], ["Buybacks", q => usd(q.buyb), "cf"],
+    ["OCF/NI", q => mult(conv(q)), "cf"], ["FCF margin", q => pct(ratio(fcf(q), q.rev)), "cf"],
     ["Current assets", q => usd(q.ca), "cr"], ["Current liab.", q => usd(q.cl), "cr"],
     ["Current ratio", q => x2(ratio(q.ca, q.cl)), "cr"],
     ["Shares out.", q => shr(splitAdj ? q.shares : q.shares_raw), "sh"],
@@ -161,6 +179,7 @@ table.rt-t tr.pick:hover td { background: rgba(128,128,128,.10); }
     { id: "npm", label: "Net margin", fmt: pct, f: q => ratio(q.ni, q.rev) },
     { id: "cr", label: "Current ratio", fmt: x2, ref: 1, f: q => ratio(q.ca, q.cl) },
     { id: "fcfm", label: "FCF margin", fmt: pct, f: q => ratio(fcf(q), q.rev) },
+    { id: "conv", label: "Cash conversion", fmt: mult, ref: 1, f: q => conv(q) },
     { id: "pe", label: "P/E", fmt: mult, f: q => q.pe },
   ];
   const GROUPS = [...new Set(DATA.map(c => c.group))];
@@ -227,7 +246,8 @@ table.rt-t tr.pick:hover td { background: rgba(128,128,128,.10); }
     const x = k => L + slot * (k + .5);
     if (p.title) el("text", { x: L, y: 11, "font-weight": 700, opacity: .8 }, p.title);
     if (!vals.length) { el("text", { x: W / 2, y: H / 2, "text-anchor": "middle", opacity: .6 }, "Not filed for this company"); return null; }
-    let lo = Math.min(view.ref != null ? view.ref : 0, 0, ...vals), hi = Math.max(view.ref || 0, 0, ...vals);
+    const ref = p.ref != null ? p.ref : view.ref;  // dashed reference line (1.0 for ratios, 1× for multiples)
+    let lo = Math.min(ref != null ? ref : 0, 0, ...vals), hi = Math.max(ref || 0, 0, ...vals);
     if (view.id === "cr") lo = 0;
     if (hi - lo === 0) hi = lo + 1;
     const step = niceStep(hi - lo);
@@ -238,9 +258,9 @@ table.rt-t tr.pick:hover td { background: rgba(128,128,128,.10); }
       el("line", { x1: L, x2: W - R, y1: y(v), y2: y(v), stroke: zero ? "currentColor" : "rgba(128,128,128,.22)", opacity: zero ? .55 : 1 });
       el("text", { x: L - 6, y: y(v) + 4, "text-anchor": "end", opacity: .7 }, axisFmt(fmt, v, step));
     }
-    if (view.ref != null) {
-      el("line", { x1: L, x2: W - R, y1: y(view.ref), y2: y(view.ref), stroke: "currentColor", opacity: .5, "stroke-dasharray": "4 4" });
-      el("text", { x: W - R, y: y(view.ref) - 4, "text-anchor": "end", opacity: .6 }, "1.0");
+    if (ref != null) {
+      el("line", { x1: L, x2: W - R, y1: y(ref), y2: y(ref), stroke: "currentColor", opacity: .5, "stroke-dasharray": "4 4" });
+      el("text", { x: L + 4, y: y(ref) - 4, "text-anchor": "start", opacity: .6 }, fmt(ref));  // left edge: clear of the latest value
     }
     const every = Math.ceil(n / 12);  // about 12 x labels, always including the latest quarter
     qs.forEach((q, k) => { if ((n - 1 - k) % every === 0)
