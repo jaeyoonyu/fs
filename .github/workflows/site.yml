@@ -1,0 +1,77 @@
+# Refresh the data from SEC EDGAR every week and publish the site.
+# - schedule / manual run: rerun the scripts, commit what changed, then deploy
+# - push to main: deploy as is
+name: Refresh and publish
+
+on:
+  schedule:
+    - cron: "0 11 * * 1"   # Mondays 11:00 UTC (07:00 Eastern)
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: site
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        if: github.event_name != 'push'
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # SEC downloads (rendered statements, XBRL instances) never change once filed,
+      # so they are kept between runs and only new filings are fetched.
+      - name: Restore the SEC download cache
+        if: github.event_name != 'push'
+        uses: actions/cache@v4
+        with:
+          path: scripts/cache
+          key: sec-${{ github.run_id }}
+          restore-keys: sec-
+
+      - name: Refresh the data
+        if: github.event_name != 'push'
+        run: |
+          pip install --quiet finance-datareader
+          python scripts/fundamentals.py
+          python scripts/ratios.py
+          python scripts/statements.py
+          python scripts/statements_full.py
+          python scripts/home.py
+
+      - name: Commit the refreshed data
+        if: github.event_name != 'push'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898499+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git diff --cached --quiet || git commit -m "Weekly data refresh from SEC EDGAR"
+          git push
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

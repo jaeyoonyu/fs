@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Financial statements from SEC filings · FS</title>
+<meta name="description" content="Fundamentals, ratios, and financial statements of US companies, built from SEC EDGAR filings.">
+<style>
+:root { --bg: #ffffff; --ink: #1c2321; --muted: #5c6863; --line: #e0e5e0; --acc: #2a78d6; --background: #ffffff; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #17191c; --ink: #e6e8ea; --muted: #9aa1a8; --line: #2c3036; --acc: #5598e7; --background: #17191c; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font-family: "Segoe UI", -apple-system, "Helvetica Neue", Roboto, sans-serif; line-height: 1.5; }
+a { color: var(--acc); }
+.fs-top { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; padding: 10px 24px;
+  border-bottom: 1px solid var(--line); position: sticky; top: 0; z-index: 5; background: var(--bg); }
+.fs-brand { font-weight: 800; font-size: 18px; color: inherit; text-decoration: none; letter-spacing: .02em; }
+.fs-brand small { font-weight: 400; color: var(--muted); font-size: 12px; margin-left: 6px; }
+.fs-tabs { display: flex; gap: 4px; }
+.fs-tabs a { padding: 5px 14px; border-radius: 999px; color: inherit; text-decoration: none; font-size: 14px; }
+.fs-tabs a:hover { background: rgba(128,128,128,.12); }
+.fs-tabs a.on { background: var(--acc); color: #fff; }
+.fs-home { margin-left: auto; font-size: 13px; color: var(--muted); text-decoration: none; }
+main { padding: 16px 24px 40px; max-width: 1480px; margin: 0 auto; }
+main h1 { font-size: 22px; margin: 4px 0 12px; }
+@media (max-width: 600px) { .fs-top, main { padding-left: 16px; padding-right: 16px; } }
+</style>
+</head>
+<body>
+<header class="fs-top">
+  <a class="fs-brand" href="./">FS<small>financial statements from SEC filings</small></a>
+  <nav class="fs-tabs"><a href="./fundamentals/" class="">Fundamentals</a><a href="./ratios/" class="">Ratios</a><a href="./statements/" class="">Statements</a></nav>
+  <a class="fs-home" href="https://jaeyoonyu.github.io/">Jaeyoon Yu ↗</a>
+</header>
+<main>
+<h1>Financial statements from SEC filings</h1>
+<style>
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; max-width: 980px; }
+.card { display: flex; flex-direction: column; gap: 6px; padding: 16px 18px; border: 1px solid var(--line); border-radius: 10px;
+  color: inherit; text-decoration: none; }
+.card:hover { border-color: var(--acc); }
+.card b { font-size: 17px; color: var(--acc); }
+.card span { color: var(--muted); font-size: 14px; }
+.lead { color: var(--muted); max-width: 760px; margin: 0 0 18px; }
+</style>
+<p class="lead">43 US companies in 11 sectors, built from public SEC EDGAR filings (data.sec.gov) and refreshed weekly.
+For teaching introductory financial accounting and financial statement analysis.</p>
+<div class="cards"><a class="card" href="./fundamentals/"><b>Fundamentals →</b><span>Every company's 10-Q and 10-K filings since 2024 by calendar quarter, with links to StockAnalysis, Finviz, and EDGAR.</span></a><a class="card" href="./ratios/"><b>Ratios →</b><span>Profit margins, current ratio, cash flows, shares, public float, P/E, and stock price, quarter by quarter since 2019; click a sector to compare its companies.</span></a><a class="card" href="./statements/"><b>Statements →</b><span>The balance sheet and income statement of any company and quarter, exactly as filed with the SEC or standardized, with definitions for every line.</span></a></div>
+
+</main>
+</body>
+</html>
