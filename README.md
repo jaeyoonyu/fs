@@ -1,4 +1,4 @@
-# FS: financial statements from SEC filings
+# Financials: financial statements from SEC filings
 
 https://jaeyoonyu.github.io/fs/
 
@@ -17,6 +17,9 @@ Tickers and sectors are set in `GROUPS` in `scripts/fundamentals.py`.
 
 `.github/workflows/site.yml` reruns all scripts every Monday and publishes the site; it can also be
 started by hand from the Actions tab. SEC downloads are cached in `scripts/cache/` (not in git).
+
+After changing `shell.py` or a template, `python scripts/rebuild.py` re-renders the pages from the data
+already in them (no SEC downloads).
 
 To refresh by hand, from the repo root:
 

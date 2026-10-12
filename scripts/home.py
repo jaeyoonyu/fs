@@ -30,7 +30,7 @@ def main():
 For teaching introductory financial accounting and financial statement analysis.</p>
 <div class="cards">{cards}</div>
 """
-    write_page("", "Financial statements from SEC filings", body)
+    write_page("", "Financials", body)
 
 
 if __name__ == "__main__":

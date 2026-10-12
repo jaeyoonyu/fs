@@ -14,7 +14,7 @@ HEAD = """<!doctype html>
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{title} · FS</title>
+<title>{tab_title}</title>
 <meta name="description" content="Fundamentals, ratios, and financial statements of US companies, built from SEC EDGAR filings.">
 <style>
 :root {{ --bg: #ffffff; --ink: #1c2321; --muted: #5c6863; --line: #e0e5e0; --acc: #2a78d6; --background: #ffffff; }}
@@ -41,7 +41,7 @@ main h1 {{ font-size: 22px; margin: 4px 0 12px; }}
 </head>
 <body>
 <header class="fs-top">
-  <a class="fs-brand" href="{base}">FS<small>financial statements from SEC filings</small></a>
+  <a class="fs-brand" href="{base}">Financials<small>from SEC filings</small></a>
   <nav class="fs-tabs">{tabs}</nav>
   <a class="fs-home" href="https://jaeyoonyu.github.io/">Jaeyoon Yu ↗</a>
 </header>
@@ -61,7 +61,8 @@ def write_page(slug, title, body):
     tabs = "".join(f'<a href="{base}{s}/" class="{"on" if s == slug else ""}">{t}</a>' for s, t in TABS)
     out = ROOT / slug / "index.html" if slug else ROOT / "index.html"
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(HEAD.format(title=title, tabs=tabs, base=base) + body + FOOT, encoding="utf-8")
+    tab_title = title if not slug else f"{title} · Financials"
+    out.write_text(HEAD.format(title=title, tab_title=tab_title, tabs=tabs, base=base) + body + FOOT, encoding="utf-8")
 
 
 def stamp():

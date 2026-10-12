@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Ratios · FS</title>
+<title>Ratios · Financials</title>
 <meta name="description" content="Fundamentals, ratios, and financial statements of US companies, built from SEC EDGAR filings.">
 <style>
 :root { --bg: #ffffff; --ink: #1c2321; --muted: #5c6863; --line: #e0e5e0; --acc: #2a78d6; --background: #ffffff; }
@@ -30,7 +30,7 @@ main h1 { font-size: 22px; margin: 4px 0 12px; }
 </head>
 <body>
 <header class="fs-top">
-  <a class="fs-brand" href="../">FS<small>financial statements from SEC filings</small></a>
+  <a class="fs-brand" href="../">Financials<small>from SEC filings</small></a>
   <nav class="fs-tabs"><a href="../fundamentals/" class="">Fundamentals</a><a href="../ratios/" class="on">Ratios</a><a href="../statements/" class="">Statements</a></nav>
   <a class="fs-home" href="https://jaeyoonyu.github.io/">Jaeyoon Yu ↗</a>
 </header>
@@ -83,6 +83,7 @@ table.rt-t .hl { font-weight: 700; }
 .rt { --c1: #2a78d6; --c2: #eb6834; --c3: #1baf7a; --c4: #eda100; --c5: #e87ba4; --c6: #008300; --c7: #4a3aa7; --c8: #e34948; }
 @media (prefers-color-scheme: dark) { .rt { --c1: #3987e5; --c2: #d95926; --c3: #199e70; --c4: #c98500; --c5: #d55181; --c6: #008300; --c7: #9085e9; --c8: #e66767; } }
 .rt-cmp { font-size: 12px; padding: 2px 9px; cursor: pointer; }
+.rt-tabs button:disabled { opacity: .4; cursor: not-allowed; }
 table.rt-t tr.pick { cursor: pointer; }
 table.rt-t tr.pick:hover td { background: rgba(128,128,128,.10); }
 .tkp a { display: flex; gap: 6px; padding: 1px 6px; border-radius: 4px; color: inherit; text-decoration: none; cursor: pointer; }
@@ -224,11 +225,13 @@ table.rt-t tr.pick:hover td { background: rgba(128,128,128,.10); }
   tkp.addEventListener("click", e => {
     const a = e.target.closest("a"), g = e.target.closest(".g");
     if (a) { sec = null; ci = +a.dataset.i; render(); }
-    else if (g) { sec = g.dataset.g; render(); }
+    else if (g) openSector(g.dataset.g);
   });
   METRICS.forEach((m, i) => { const b = document.createElement("button"); b.textContent = m.label;
     b.addEventListener("click", () => { mi = i; render(); }); $("rt-mtabs").appendChild(b); });
-  $("rt-cmp").addEventListener("click", () => { sec = DATA[ci].group; render(); });
+  $("rt-cmp").addEventListener("click", () => openSector(DATA[ci].group));
+  const secOpt = document.createElement("option");  // shown in the dropdown while comparing a sector
+  secOpt.value = ""; secOpt.hidden = true; sel.appendChild(secOpt);
   let group = null, og = null;
   DATA.forEach((c, i) => {
     if (c.group !== group) { group = c.group; og = document.createElement("optgroup"); og.label = group; sel.appendChild(og); }
@@ -387,8 +390,22 @@ table.rt-t tr.pick:hover td { background: rgba(128,128,128,.10); }
         return `<td${cls ? ` class="${cls}"` : ""}>${t}</td>`; }).join("") + "</tr>").join("") + "</tbody>";
   }
 
+  // Ratios with at least one value for some company in the sector (airlines report no gross profit).
+  const hasData = (idx, m) => idx.some(i => DATA[i].quarters.some(q => m.f(q) != null));
+  function openSector(g) {
+    sec = g;
+    const idx = DATA.map((c, i) => i).filter(i => DATA[i].group === sec);
+    if (!hasData(idx, METRICS[mi])) mi = Math.max(0, METRICS.findIndex(m => hasData(idx, m)));
+    render();
+  }
+
   function renderSector() {
     const m = METRICS[mi], idx = DATA.map((c, i) => i).filter(i => DATA[i].group === sec);
+    secOpt.textContent = "Sector: " + sec; sel.value = "";
+    [...$("rt-mtabs").children].forEach((b, i) => {
+      const ok = hasData(idx, METRICS[i]);
+      b.disabled = !ok; b.title = ok ? "" : "Not reported by the companies in this sector";
+    });
     markPanel(-1);
     $("rt-name").textContent = sec + " — sector comparison";
     $("rt-sub").textContent = idx.length + " companies · click a row or ticker to open one company";
@@ -470,14 +487,18 @@ table.rt-t tr.pick:hover td { background: rgba(128,128,128,.10); }
     if (!d) return;
     e.preventDefault();
     if (sec != null) {
-      sec = GROUPS[(GROUPS.indexOf(sec) + d[0] + GROUPS.length) % GROUPS.length];
-      mi = (mi + d[1] + METRICS.length) % METRICS.length; render(); return;
+      if (d[0]) { openSector(GROUPS[(GROUPS.indexOf(sec) + d[0] + GROUPS.length) % GROUPS.length]); return; }
+      const idx = DATA.map((c, i) => i).filter(i => DATA[i].group === sec);
+      do { mi = (mi + d[1] + METRICS.length) % METRICS.length; } while (!hasData(idx, METRICS[mi]));
+      render(); return;
     }
     ci = (ci + d[0] + DATA.length) % DATA.length; vi = (vi + d[1] + VIEWS.length) % VIEWS.length; render();
   });
   const [ht, hv] = decodeURIComponent(location.hash.slice(1)).split("/");
   if (ht && ht.startsWith("sector:") && GROUPS.includes(ht.slice(7))) {
     sec = ht.slice(7); mi = Math.max(0, METRICS.findIndex(x => x.id === hv));
+    const idx = DATA.map((c, i) => i).filter(i => DATA[i].group === sec);
+    if (!hasData(idx, METRICS[mi])) mi = Math.max(0, METRICS.findIndex(m => hasData(idx, m)));
   }
   ci = Math.max(0, DATA.findIndex(c => c.ticker === (ht || "").toUpperCase()));
   vi = Math.max(0, VIEWS.findIndex(v => v.id === hv));
