@@ -16,9 +16,10 @@ UA = {"User-Agent": "Jaeyoon Yu yu10j@cmich.edu"}
 FIRST_COL, LAST_COL = (2024, 1), (2026, 2)  # calendar quarters shown, (year, q)
 
 # (group, [tickers]). Competitors added: CAVA (SG), CMCSA (CHTR), EVGO and BLNK
-# (CHPT), BE and FCEL (PLUG), SEDG (ENPH).
+# (CHPT), BE and FCEL (PLUG), SEDG (ENPH), DT and ESTC (DDOG).
 GROUPS = [
     ("Tech", ["MU", "NVDA", "GOOGL", "AMZN", "AVGO", "ORCL", "NFLX"]),
+    ("Software / observability", ["DDOG", "DT", "ESTC"]),
     ("Retail", ["WMT", "COST", "KR", "TGT", "TJX"]),
     ("Footwear / apparel", ["NKE", "CROX", "DECK", "LULU"]),
     ("Restaurants", ["SG", "CAVA", "DPZ", "PZZA", "YUM", "DRI"]),
