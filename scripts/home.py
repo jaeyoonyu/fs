@@ -11,6 +11,9 @@ CARDS = [
     ("statements", "Statements",
      "The balance sheet and income statement of any company and quarter, exactly as filed with the SEC or standardized, "
      "with definitions for every line."),
+    ("methods", "Data & methods",
+     "Where every number comes from (SEC EDGAR), how quarters, Q4, cash flows, splits, and P/E are handled, "
+     "and the known limitations."),
 ]
 
 

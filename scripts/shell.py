@@ -7,7 +7,8 @@ from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-TABS = [("fundamentals", "Fundamentals"), ("ratios", "Ratios"), ("statements", "Statements")]
+TABS = [("fundamentals", "Fundamentals"), ("ratios", "Ratios"), ("statements", "Statements"),
+        ("methods", "Data & methods")]
 
 HEAD = """<!doctype html>
 <html lang="en">

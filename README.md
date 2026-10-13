@@ -11,6 +11,7 @@ quarter-end closes, market cap, and P/E are published. The price chart is an emb
 | `fundamentals/` | `scripts/fundamentals.py` |
 | `ratios/` | `scripts/ratios.py` (+ `ratios_template.html`) |
 | `statements/` | `scripts/statements.py` (+ `statements_template.html`) and `scripts/statements_full.py` → `assets/statements/*.json` |
+| `methods/` | `scripts/methods.py` |
 | `index.html` | `scripts/home.py` |
 
 Tickers and sectors are set in `GROUPS` in `scripts/fundamentals.py`.
@@ -29,4 +30,5 @@ python scripts/ratios.py
 python scripts/statements.py
 python scripts/statements_full.py
 python scripts/home.py
+python scripts/methods.py
 ```

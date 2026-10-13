@@ -7,6 +7,7 @@ import re
 from pathlib import Path
 
 import home
+import methods
 from shell import ROOT, write_page
 
 HERE = Path(__file__).resolve().parent
@@ -33,6 +34,7 @@ def main():
     write_page("statements", "Statements", page.replace("__DATA__", m.group(1))
                .replace("__LAYOUT__", m.group(2)).replace("__STAMP__", stamp_of(b)))
     home.main()
+    methods.main()
     print("rebuilt")
 
 

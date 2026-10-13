@@ -51,6 +51,7 @@ jobs:
           python scripts/statements.py
           python scripts/statements_full.py
           python scripts/home.py
+          python scripts/methods.py
 
       - name: Commit the refreshed data
         if: github.event_name != 'push'
